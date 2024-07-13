@@ -6,6 +6,8 @@ import example.pojo.gpt.GptRes;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.Objects;
 
 public record GptService(String gptSK,
@@ -42,7 +44,9 @@ public record GptService(String gptSK,
         try {
             // 发送请求并获取响应
             Response response = client.newCall(request).execute();
-            if (!response.isSuccessful()) return null;
+            if (!response.isSuccessful()) {
+                return null;
+            }
 
             String responseBody = Objects.requireNonNull(response.body()).string();
             GptRes gptResJson = JSON.parseObject(responseBody, GptRes.class);
