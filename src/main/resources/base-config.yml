@@ -1,0 +1,15 @@
+gpt:
+  sk: sk-
+  url: https://o.com/v1/chat/completions
+  model: gpt-3.5-turbo
+  init-prompt: 请你用最精简的一句话概括我接下来发送的文章，这整句概括的话只允许用一个句号"。"结尾。然后总结概括最精准的标签返回，标签以“#标签”形式返回
+
+
+lark:
+  app-id: cli_a
+  app-secret: EfPXJ
+
+  #需要总结的表格id
+  sheet-id: N5Wts
+  #导出的新表格id
+  new-sheet-id: JWdrsW

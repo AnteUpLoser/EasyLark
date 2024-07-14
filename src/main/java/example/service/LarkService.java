@@ -20,7 +20,7 @@ public class LarkService {
     private static final YmlConfig ymlConfig = SingletonHelper.YML_CONFIG;
     private static final String GET_USER_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal";
     private static final String NEW_SHEET_URL = "https://open.feishu.cn/open-apis/sheets/v3/spreadsheets";
-    private static final String GET_SHEET_ROW_DATA_URL = "https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/"+ymlConfig.getSheetID()+"/values/5cc663!B1:B4";
+    private static final String GET_SHEET_ROW_DATA_URL = "https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/"+ymlConfig.getSheetID()+"/values/5cc663!B1:B3";
     private static final String GET_SHEET_ID_URL = "https://open.feishu.cn/open-apis/sheets/v3/spreadsheets/"+ ymlConfig.getNewSheetID()+"/sheets/query";
 
     private static final String PUT_SHEET_DATA = "https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/"+ ymlConfig.getNewSheetID() +"/values";
@@ -45,15 +45,12 @@ public class LarkService {
                 .addHeader("Authorization", "Bearer " + userToken)
                 .get()
                 .build();
-//        System.out.println(request);
         try {
             // 发送请求并获取响应
             Response response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
                 return null;
             }
-
-            //            System.out.println(responseBody);
             return Objects.requireNonNull(response.body()).string();
         } catch (IOException e) {
             e.printStackTrace();
@@ -89,7 +86,6 @@ public class LarkService {
             if (response.isSuccessful()) {
                 // 将响应体转换为字符串
                 String responseBody = Objects.requireNonNull(response.body()).string();
-                System.out.println(responseBody);
                 // 使用 FastJSON 解析响应体
                 JSONObject jsonObject = JSON.parseObject(responseBody);
                 // 获取 tenant_access_token
@@ -135,7 +131,6 @@ public class LarkService {
                 JSONArray innerArray = valuesArray.getJSONArray(i).getJSONArray(0);
                 if (innerArray != null) {
                     List<SheetRowData> sheetRowDataList = innerArray.toJavaList(SheetRowData.class);
-                    System.out.println(sheetRowDataList);
                     if(sheetRowDataList.get(0).getLink() != null) {
                         LinkDto dto = new LinkDto();
                         dto.setHref(sheetRowDataList.get(0).getLink());
@@ -154,6 +149,7 @@ public class LarkService {
         String url = "https://open.feishu.cn/open-apis/docx/v1/documents/"+linkToken+"/raw_content";
         String linkArticleString = httpGet(url, userToken);
         String summary = gptService.sendMsg(linkArticleString);
+        System.out.println(summary);
         return summary;
     }
 
@@ -184,7 +180,7 @@ public class LarkService {
 
     //插入表格新行
     public void insertNewRow(String userToken, int num, NewRowData newRowData) {
-        String range = getSheetId(userToken) + "!A"+num + ":E5";
+        String range = getSheetId(userToken) + "!A"+num + ":E";
 
         // 构建请求体数据
         String jsonBody = String.format("""
@@ -212,7 +208,6 @@ public class LarkService {
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 String responseBody = Objects.requireNonNull(response.body()).string();
-                System.out.println("Response: " + responseBody);
             } else {
                 System.err.println("Request failed with code: " + response.code());
             }
@@ -220,6 +215,42 @@ public class LarkService {
             e.printStackTrace();
         }
 
+    }
+
+
+    public void summaryStart(){
+        String userToken = getUserToken();
+
+        List<LinkDto> linkDtoList = getSheetRowData(userToken);
+
+        int numFlag = 1;
+        for (LinkDto linkDto : linkDtoList) {
+            String text = getSummaryLinkString(linkDto.getLinkToken(), userToken);
+            if (text == null) {
+                NewRowData newRowData = new NewRowData();
+                newRowData.setLink(linkDto.getHref());
+                newRowData.setNumber(numFlag);
+                newRowData.setSummary("文章过长暂不支持总结");
+                insertNewRow(userToken, numFlag, newRowData);
+                numFlag++;
+                continue;
+            }
+            // 查找第一个句号的位置
+            int splitIndex = text.indexOf('。') + 1;
+
+            // 自动拆分字符串
+            String summary = text.substring(0, splitIndex);
+            String labels = text.substring(splitIndex);
+
+            NewRowData newRow = new NewRowData();
+            newRow.setNumber(numFlag);
+            newRow.setSummary(summary);
+            newRow.setLabel(labels);
+            newRow.setUpdateLog("暂无");
+            newRow.setLink(linkDto.getHref());
+            insertNewRow(userToken, numFlag, newRow);
+            numFlag++;
+        }
     }
 
 

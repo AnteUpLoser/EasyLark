@@ -4,6 +4,7 @@ import example.annotation.ConfigValueProcessor;
 import example.annotation.YmlConfigLoader;
 import example.pojo.YmlConfig;
 import example.service.GptService;
+import example.service.LarkEventService;
 import example.service.LarkService;
 
 //初始化单例
@@ -22,5 +23,6 @@ public class SingletonHelper {
             YML_CONFIG.getGptModel());
 
     public static final LarkService LARK_SERVICE_INSTANCE = new LarkService();
+    public static final LarkEventService LARK_EVENT_SERVICE = new LarkEventService();
 
 }
